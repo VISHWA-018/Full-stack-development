@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — CSE Quiz Engine</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.dash-layout { display:grid; grid-template-columns:240px 1fr; min-height:calc(100vh - 60px); }
+.sidebar {
+  background:var(--surface); border-right:1px solid var(--border);
+  padding:24px 12px; display:flex; flex-direction:column; gap:4px;
+}
+.sidebar-item {
+  display:flex; align-items:center; gap:12px; padding:11px 16px;
+  font-size:0.875rem; font-weight:600; color:var(--text-2);
+  cursor:pointer; border:none; background:none;
+  font-family:'Inter',sans-serif; text-align:left; width:100%;
+  border-radius:var(--radius-sm); transition:0.15s;
+}
+.sidebar-item:hover { background:var(--surface-2); color:var(--text); }
+.sidebar-item.active {
+  background: var(--accent-dim);
+  color:var(--accent); border:1px solid rgba(124,77,255,0.25);
+}
+.sidebar-item.active i { color:var(--accent); }
+.sidebar-icon { font-size:1.2rem; }
+.content { padding:28px 32px; overflow-y:auto; background:var(--bg); }
+@media(max-width:700px){ .dash-layout{grid-template-columns:1fr;} .sidebar{display:none;} }
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+.empty-state { text-align:center; padding:48px 24px; color:var(--text-2); border:1px dashed var(--border); border-radius:var(--radius); margin-top:8px; }
+.empty-icon { font-size:3rem; color:var(--text-3); margin-bottom:12px; }
+
+/* ── Flashcard styles ── */
+.fc-scene { width:100%;max-width:600px;margin:0 auto;perspective:1200px;cursor:pointer;height:320px;position:relative; }
+.fc-card {
+  width:100%;height:100%;position:relative;
+  transform-style:preserve-3d;transition:transform 0.55s cubic-bezier(0.4,0.2,0.2,1);
+  border-radius:var(--radius);
+}
+.fc-card.flipped { transform:rotateY(180deg); }
+.fc-front,.fc-back {
+  position:absolute;width:100%;height:100%;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:var(--radius);padding:32px;
+  display:flex;flex-direction:column;justify-content:center;
+  border:1px solid var(--border);overflow-y:auto;
+}
+.fc-front { background:var(--surface); }
+.fc-back { background:linear-gradient(135deg,#08122a,#0a1e48);transform:rotateY(180deg);border-color:var(--accent); }
+.fc-hint { font-size:0.75rem;color:var(--text-3);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px; }
+.fc-question { font-size:1.1rem;font-weight:600;color:var(--text);line-height:1.65;margin-bottom:16px; }
+.fc-opt { padding:8px 12px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface-2);margin-bottom:6px;font-size:0.875rem;color:var(--text-2); }
+.fc-opt.wrong { border-color:var(--danger);color:var(--danger);background:rgba(255,82,82,0.08); }
+.fc-opt.correct { border-color:var(--success);color:var(--success);background:rgba(0,230,118,0.08); }
+.fc-nav { display:flex;align-items:center;justify-content:center;gap:16px;margin-top:24px; }
+.fc-counter { font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;color:var(--text-2); }
+.fc-badge { display:inline-flex;align-items:center;gap:6px;background:var(--danger);color:#fff;
+  padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;margin-bottom:12px; }
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="brand"><i class="ph-fill ph-lightning"></i> CSE Quiz Engine</div>
+  <div class="nav-actions">
+    <button class="theme-btn" onclick="toggleTheme()"><i class="ph ph-moon" id="theme-ico"></i></button>
+    <button class="btn btn-accent btn-sm" onclick="location.href='quiz.html'"><i class="ph-fill ph-play"></i> Start Quiz</button>
+    <button class="btn btn-ghost btn-sm" onclick="logout()" style="color:var(--danger);border-color:var(--danger);"><i class="ph ph-sign-out"></i> Logout</button>
+    <div class="user-chip">
+      <div class="avatar" id="nav-avatar">U</div>
+      <span class="chip-name" id="nav-name">Student</span>
+    </div>
+  </div>
+</nav>
+
+<div class="dash-layout">
+  <div class="sidebar">
+    <button class="sidebar-item active" onclick="switchTab('overview',this)">
+      <i class="ph-fill ph-squares-four sidebar-icon"></i> Overview
+    </button>
+    <button class="sidebar-item" onclick="switchTab('history',this)">
+      <i class="ph ph-clock-counter-clockwise sidebar-icon"></i> History
+    </button>
+    <button class="sidebar-item" onclick="switchTab('leaderboard',this)">
+      <i class="ph-fill ph-trophy sidebar-icon"></i> Leaderboard
+    </button>
+    <button class="sidebar-item" onclick="switchTab('flashcards',this)">
+      <i class="ph-fill ph-cards sidebar-icon" style="color:var(--warn);"></i> Flashcards
+      <span id="fc-badge-count" style="margin-left:auto;background:var(--danger);color:#fff;border-radius:20px;padding:1px 8px;font-size:0.7rem;font-weight:700;display:none;"></span>
+    </button>
+    <div style="margin-top:auto;padding:16px 4px;border-top:1px solid var(--border);">
+      <button class="btn btn-accent btn-block" onclick="location.href='quiz.html'" style="font-size:0.875rem;">
+        <i class="ph-fill ph-play"></i> New Quiz
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Overview -->
+    <div id="tab-overview" class="fade-in">
+      <div class="banner">
+        <div>
+          <h2 id="welcome-name">Dashboard</h2>
+          <p>Track your performance across all CSE subjects.</p>
+        </div>
+        <button class="btn btn-yellow btn-sm" onclick="location.href='quiz.html'"><i class="ph-fill ph-play"></i> Start Quiz</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="s-val" id="s-attempts">—</div><div class="s-label">Attempts</div></div>
+        <div class="stat-box"><div class="s-val" id="s-best">—</div><div class="s-label">Peak Score</div></div>
+        <div class="stat-box"><div class="s-val" id="s-avg">—</div><div class="s-label">Avg Score</div></div>
+        <div class="stat-box"><div class="s-val" style="gap:6px;"><i class="ph-fill ph-fire" style="color:var(--warn);font-size:1.5rem;"></i><span id="s-streak">—</span></div><div class="s-label">Max Streak</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="chart-card"><div class="sec-head">Score Progress</div><canvas id="chart-score" height="180"></canvas></div>
+        <div class="chart-card"><div class="sec-head">By Category</div><canvas id="chart-cat" height="180"></canvas></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div id="tab-history" class="hidden fade-in">
+      <div class="sec-head">Attempt History</div>
+      <div class="section-box" style="padding:0 24px;" id="history-list">
+        <div class="empty-state"><i class="ph ph-clipboard-text empty-icon"></i><br>No attempts yet. Start your first quiz!</div>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="tab-leaderboard" class="hidden fade-in">
+      <div class="sec-head">Global Leaderboard</div>
+      <div class="section-box" style="padding:0;">
+        <table class="table">
+          <thead><tr><th>Rank</th><th>Player</th><th>Peak Score</th><th>Streak</th></tr></thead>
+          <tbody id="lb-body"><tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text-3);">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Flashcards -->
+    <div id="tab-flashcards" class="hidden fade-in">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div class="sec-head" style="margin:0;"><i class="ph-fill ph-cards" style="color:var(--warn);"></i> Mistake Flashcards</div>
+        <button class="btn btn-outline btn-sm" onclick="shuffleCards()"><i class="ph ph-shuffle"></i> Shuffle</button>
+      </div>
+      <div id="fc-empty" class="empty-state hidden">
+        <i class="ph ph-check-circle empty-icon" style="color:var(--success);"></i><br>
+        <strong>All clear!</strong><br>No mistakes recorded yet. Complete a quiz first.
+      </div>
+      <div id="fc-wrap">
+        <div class="fc-scene" onclick="flipCard()" title="Click to reveal answer">
+          <div class="fc-card" id="fc-card">
+            <div class="fc-front">
+              <div class="fc-hint"><i class="ph ph-hand-tap"></i> Click card to reveal answer</div>
+              <div class="fc-badge" id="fc-cat-badge"><i class="ph ph-folder-open"></i> <span id="fc-cat"></span></div>
+              <div class="fc-question" id="fc-q-text">Loading...</div>
+              <div id="fc-opts-front"></div>
+            </div>
+            <div class="fc-back">
+              <div class="fc-hint" style="color:rgba(255,255,255,0.5);"><i class="ph ph-check-circle"></i> Correct Answer</div>
+              <div class="fc-question" id="fc-ans-text" style="color:#fff;"></div>
+              <div id="fc-opts-back"></div>
+              <div style="margin-top:16px;font-size:0.8rem;color:rgba(255,255,255,0.5);">Your answer: <span id="fc-user-ans" style="color:#ff8a80;"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="fc-nav">
+          <button class="btn btn-outline btn-sm" onclick="prevCard()"><i class="ph ph-arrow-left"></i> Prev</button>
+          <span class="fc-counter"><span id="fc-cur">1</span> / <span id="fc-tot">0</span></span>
+          <button class="btn btn-accent btn-sm" onclick="nextCard()">Next <i class="ph ph-arrow-right"></i></button>
+        </div>
+        <div style="text-align:center;margin-top:16px;color:var(--text-3);font-size:0.8rem;">
+          <i class="ph ph-keyboard"></i> Use ← → arrow keys to navigate · Space to flip
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='http://localhost:3000/api';
+const user=JSON.parse(localStorage.getItem('quizUser')||'null');
+if(!user) location.href='index.html';
+
+const gt=()=>localStorage.getItem('quizTheme')||'dark';
+const applyTheme=()=>{ document.documentElement.setAttribute('data-theme',gt()); document.getElementById('theme-ico').className=gt()==='dark'?'ph ph-moon':'ph ph-sun'; };
+applyTheme();
+function toggleTheme(){ localStorage.setItem('quizTheme',gt()==='dark'?'light':'dark'); location.reload(); }
+function logout(){ localStorage.removeItem('quizUser'); location.href='index.html'; }
+
+document.getElementById('nav-avatar').textContent=user.name[0].toUpperCase();
+document.getElementById('nav-name').textContent=user.name;
+document.getElementById('welcome-name').textContent='Hey, '+user.name+'!';
+
+let scoreChart=null,catChart=null;
+
+function switchTab(id,el){
+  document.querySelectorAll('.sidebar-item').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  ['overview','history','leaderboard','flashcards'].forEach(t=>document.getElementById('tab-'+t).classList.add('hidden'));
+  document.getElementById('tab-'+id).classList.remove('hidden');
+  if(id==='leaderboard') loadLB();
+  if(id==='flashcards') loadFlashcards();
+}
+
+const isDark=()=>gt()==='dark';
+const chartColors={ grid:()=>isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)', tick:()=>isDark()?'#9494b8':'#5a5a8a' };
+
+async function loadDashboard(){
+  try{
+    const hr=await fetch(`${API}/history/${user.id}`);
+    const h=await hr.json();
+    // If server returns an error object (stale session / deleted user), re-login
+    if(h.error){ localStorage.removeItem('quizUser'); location.href='index.html'; return; }
+    if(h.length){
+      let best=0,total=0,bestStreak=0;
+      h.forEach(a=>{ const p=parseFloat(a.percentage); if(p>best)best=p; total+=p; if(a.streak>bestStreak)bestStreak=a.streak; });
+      document.getElementById('s-attempts').textContent=h.length;
+      document.getElementById('s-best').textContent=best.toFixed(1)+'%';
+      document.getElementById('s-avg').textContent=(total/h.length).toFixed(1)+'%';
+      document.getElementById('s-streak').textContent=bestStreak;
+
+      document.getElementById('history-list').innerHTML=h.slice(0,10).map(a=>{
+        const p=parseFloat(a.percentage);
+        return `<div class="hist-row">
+          <div>
+            <div class="hist-score">${a.score}/${a.total} pts
+              <span class="chip ${p>=75?'chip-success':p>=50?'chip-warn':'chip-danger'}">
+                ${p>=75?'Passed':p>=50?'Avg':'Retry'}
+              </span>
+            </div>
+            <div class="hist-meta"><i class="ph-fill ph-fire" style="color:var(--warn)"></i> Streak ${a.streak} &nbsp;·&nbsp; ${new Date(a.date_taken).toLocaleDateString()}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;color:var(--accent)">${p.toFixed(1)}%</div>
+            ${a.cert_code?`<div class="chip chip-accent" style="margin-top:6px;font-size:0.7rem;font-family:var(--font-mono)">${a.cert_code}</div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+
+      const labels=h.slice(0,8).reverse().map((_,i)=>`#${i+1}`);
+      const scores=h.slice(0,8).reverse().map(a=>parseFloat(a.percentage));
+      if(scoreChart) scoreChart.destroy();
+      scoreChart=new Chart(document.getElementById('chart-score'),{
+        type:'line',
+        data:{labels,datasets:[{label:'Score %',data:scores,borderColor:'#7c4dff',backgroundColor:'rgba(124,77,255,0.12)',fill:true,tension:0.4,pointBackgroundColor:'#7c4dff',pointRadius:4,pointHoverRadius:6}]},
+        options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:chartColors.grid()},ticks:{color:chartColors.tick(),font:{size:10}}},y:{grid:{color:chartColors.grid()},ticks:{color:chartColors.tick(),font:{size:10}},min:0,max:100}}}
+      });
+    }else{
+      ['s-attempts','s-best','s-avg','s-streak'].forEach(id=>document.getElementById(id).textContent='0');
+    }
+    const st=await(await fetch(`${API}/stats/${user.id}`)).json();
+    if(st.categories&&st.categories.length){
+      if(catChart) catChart.destroy();
+      catChart=new Chart(document.getElementById('chart-cat'),{
+        type:'doughnut',
+        data:{labels:st.categories.map(c=>c.category),datasets:[{data:st.categories.map(c=>c.total),backgroundColor:['#7c4dff','#00e676','#ffdd33','#ff5252','#40c4ff','#ffab40','#b44dff'],borderWidth:0}]},
+        options:{plugins:{legend:{position:'right',labels:{color:chartColors.tick(),boxWidth:10,font:{size:11}}}},cutout:'65%'}
+      });
+    }
+  }catch(e){console.error(e);}
+}
+
+async function loadLB(){
+  const lb=await(await fetch(`${API}/leaderboard`)).json();
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('lb-body').innerHTML=lb.map((r,i)=>`<tr>
+    <td style="font-size:1.2rem;">${i<3?medals[i]:i+1}</td>
+    <td style="font-weight:600;">${r.name}${r.name===user.name?' <span class="chip chip-accent" style="font-size:0.65rem;">You</span>':''}</td>
+    <td style="font-family:var(--font-mono);color:var(--accent);font-weight:700;">${r.percentage}%</td>
+    <td><i class="ph-fill ph-fire" style="color:var(--warn);"></i> ${r.streak}</td>
+  </tr>`).join('');
+}
+
+// ── FLASHCARD ENGINE ──────────────────────────────────────────────────────────
+let fcCards=[],fcIndex=0,fcFlipped=false;
+
+async function loadFlashcards(){
+  try{
+    const cards=await(await fetch(`${API}/flashcards/${user.id}`)).json();
+    if(!cards.length||cards.error){
+      document.getElementById('fc-empty').classList.remove('hidden');
+      document.getElementById('fc-wrap').classList.add('hidden');
+      return;
+    }
+    document.getElementById('fc-empty').classList.add('hidden');
+    document.getElementById('fc-wrap').classList.remove('hidden');
+    fcCards=cards; fcIndex=0;
+    // Show badge count
+    const badge=document.getElementById('fc-badge-count');
+    badge.textContent=cards.length; badge.style.display='inline';
+    document.getElementById('fc-tot').textContent=cards.length;
+    renderCard();
+  }catch(e){console.error(e);}
+}
+
+const optLabels=['A','B','C','D'];
+const optKeys=['option_a','option_b','option_c','option_d'];
+
+function renderCard(){
+  const c=fcCards[fcIndex];
+  fcFlipped=false;
+  document.getElementById('fc-card').classList.remove('flipped');
+  document.getElementById('fc-cur').textContent=fcIndex+1;
+  document.getElementById('fc-cat').textContent=c.category+' · '+c.difficulty;
+  document.getElementById('fc-q-text').textContent=c.question_text;
+  document.getElementById('fc-ans-text').textContent=c.question_text;
+  // Build options for front (show all, no highlight)
+  const opts=c.question_type==='truefalse'?
+    [{k:'A',v:c.option_a},{k:'B',v:c.option_b}]:
+    optLabels.map((k,i)=>({k,v:c[optKeys[i]]})).filter(o=>o.v);
+  document.getElementById('fc-opts-front').innerHTML=opts.map(o=>`<div class="fc-opt">${o.k}. ${o.v}</div>`).join('');
+  // Back: highlight correct and wrong
+  const userAns=c.user_answer;
+  document.getElementById('fc-opts-back').innerHTML=opts.map(o=>{
+    const isCorrect=o.k===c.correct_option, isWrong=o.k===userAns&&!isCorrect;
+    return `<div class="fc-opt ${isCorrect?'correct':isWrong?'wrong':''}">${isCorrect?'✓ ':isWrong?'✗ ':''}${o.k}. ${o.v}</div>`;
+  }).join('');
+  const answerLabel=opts.find(o=>o.k===c.correct_option);
+  document.getElementById('fc-user-ans').textContent=userAns?(opts.find(o=>o.k===userAns)?.v||userAns):'(skipped)';
+}
+
+function flipCard(){ fcFlipped=!fcFlipped; document.getElementById('fc-card').classList.toggle('flipped',fcFlipped); }
+function nextCard(){ if(fcIndex<fcCards.length-1){fcIndex++;renderCard();} }
+function prevCard(){ if(fcIndex>0){fcIndex--;renderCard();} }
+function shuffleCards(){ fcCards.sort(()=>Math.random()-0.5); fcIndex=0; renderCard(); }
+
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('tab-flashcards').classList.contains('hidden')) return;
+  if(e.key==='ArrowRight') nextCard();
+  else if(e.key==='ArrowLeft') prevCard();
+  else if(e.key===' '){ e.preventDefault(); flipCard(); }
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+loadDashboard();
+</script>
+</body>
+</html>

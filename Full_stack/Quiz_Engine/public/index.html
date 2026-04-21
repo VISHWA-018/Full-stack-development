@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — CSE Quiz Engine</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
+.auth-page { display:flex; min-height:100vh; }
+.auth-left {
+  width:440px; flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  padding:40px;
+}
+.auth-right {
+  flex:1;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  padding:40px; position:relative; overflow:hidden;
+  background: radial-gradient(ellipse at 30% 50%, rgba(124,77,255,0.15) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 80%, rgba(255,221,51,0.08) 0%, transparent 50%),
+              var(--bg);
+}
+@media(max-width:760px){ .auth-left{width:100%;} .auth-right{display:none;} }
+
+.auth-logo { margin-bottom:36px; }
+.auth-heading { font-family:'Space Grotesk',sans-serif; font-size:1.6rem; font-weight:700; margin-bottom:6px; }
+.auth-sub { color:var(--text-2); font-size:0.9rem; margin-bottom:28px; }
+
+.admin-hint {
+  margin-top:28px; padding:14px 16px;
+  background:var(--surface-2); border:1px dashed var(--border);
+  border-radius:var(--radius-sm); font-size:0.8125rem; color:var(--text-2);
+  display:flex; gap:12px; align-items:flex-start;
+}
+.admin-hint i { color:var(--accent-2); font-size:1.2rem; flex-shrink:0; margin-top:1px; }
+code { font-family:var(--font-mono); font-size:0.8rem; color:var(--accent); background:var(--accent-dim); padding:2px 6px; border-radius:4px; }
+
+/* Right decorative */
+.deco-wrap { text-align:center; max-width:440px; }
+.deco-logo {
+  width:72px; height:72px; border-radius:20px;
+  background: linear-gradient(135deg, var(--accent), #b44dff);
+  display:flex; align-items:center; justify-content:center;
+  font-size:2.2rem; margin:0 auto 24px;
+  box-shadow: 0 8px 32px rgba(124,77,255,0.4);
+}
+.deco-wrap h2 { font-family:'Space Grotesk',sans-serif; font-size:2rem; font-weight:700; margin-bottom:14px; line-height:1.2; }
+.deco-wrap h2 span { color: var(--accent); }
+.deco-wrap p  { color:var(--text-2); font-size:0.95rem; margin-bottom:36px; line-height:1.7; }
+.feature-list { display:flex; flex-direction:column; gap:12px; text-align:left; }
+.feat { display:flex; align-items:center; gap:16px; padding:14px 18px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); transition:0.2s; }
+.feat:hover { border-color:var(--accent); }
+.feat-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; }
+.feat-icon.vi { background:rgba(124,77,255,0.15); color:var(--accent); }
+.feat-icon.ye { background:rgba(255,221,51,0.15); color:var(--accent-2); }
+.feat-icon.gr { background:rgba(0,230,118,0.15); color:var(--success); }
+.feat .feat-text strong { display:block; font-weight:600; font-size:0.875rem; margin-bottom:2px; }
+.feat .feat-text span { color:var(--text-2); font-size:0.8rem; }
+</style>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-left">
+    <div class="auth-logo">
+      <div class="brand" style="font-size:1.2rem;"><i class="ph-fill ph-lightning"></i> CSE Quiz Engine</div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" onclick="show('login',this)">Sign In</button>
+      <button class="tab" onclick="show('signup',this)">Sign Up</button>
+    </div>
+
+    <div id="alert" class="alert"></div>
+
+    <div id="login-panel" class="fade-in">
+      <div class="auth-heading">Welcome back</div>
+      <div class="auth-sub">Sign in to continue your learning journey</div>
+      <form onsubmit="doLogin(event)">
+        <div class="field">
+          <label>Email Address</label>
+          <div class="input-wrap"><i class="ph ph-envelope-simple ico"></i>
+            <input type="email" id="l-email" placeholder="you@example.com" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap"><i class="ph ph-lock-key ico"></i>
+            <input type="password" id="l-pass" placeholder="••••••••" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-accent btn-block" id="l-btn">Sign In <i class="ph ph-arrow-right"></i></button>
+      </form>
+    </div>
+
+    <div id="signup-panel" class="hidden">
+      <div class="auth-heading">Create account</div>
+      <div class="auth-sub">Join thousands of CSE learners today</div>
+      <form onsubmit="doSignup(event)">
+        <div class="field">
+          <label>Full Name</label>
+          <div class="input-wrap"><i class="ph ph-user ico"></i>
+            <input type="text" id="s-name" placeholder="John Doe" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Email Address</label>
+          <div class="input-wrap"><i class="ph ph-envelope-simple ico"></i>
+            <input type="email" id="s-email" placeholder="you@example.com" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap"><i class="ph ph-lock-key ico"></i>
+            <input type="password" id="s-pass" placeholder="Min. 6 characters" minlength="6" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-accent btn-block" id="s-btn">Create Account <i class="ph ph-arrow-right"></i></button>
+      </form>
+    </div>
+
+    <div class="admin-hint">
+      <i class="ph-fill ph-shield-check"></i>
+      <div>Admin access: <code>admin@quiz.com</code> / <code>admin123</code></div>
+    </div>
+
+    <div style="margin-top:auto;padding-top:24px;">
+      <button class="btn btn-ghost btn-sm" onclick="toggleTheme()"><i class="ph ph-moon" id="theme-ico"></i> Toggle Theme</button>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="deco-wrap pop">
+      <div class="deco-logo"><i class="ph-fill ph-lightning"></i></div>
+      <h2>Level up your <span>CSE skills</span>. One quiz at a time.</h2>
+      <p>A proctored, real-time quiz engine covering DSA, Java, Full Stack, DBMS and more — with instant certificates.</p>
+      <div class="feature-list">
+        <div class="feat">
+          <div class="feat-icon vi"><i class="ph-fill ph-timer"></i></div>
+          <div class="feat-text"><strong>Timed Questions</strong><span>30-second countdowns per question</span></div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon ye"><i class="ph-fill ph-fire"></i></div>
+          <div class="feat-text"><strong>Streak Multipliers</strong><span>Chain correct answers to build your fire streak</span></div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon gr"><i class="ph-fill ph-certificate"></i></div>
+          <div class="feat-text"><strong>Verified Certificates</strong><span>Unique ID certificate generated for every pass</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='http://localhost:3000/api';
+const saved=JSON.parse(localStorage.getItem('quizUser')||'null');
+if(saved) location.href=saved.role==='admin'?'admin.html':'dashboard.html';
+
+const gt=()=>localStorage.getItem('quizTheme')||'dark';
+document.documentElement.setAttribute('data-theme',gt());
+const updateThemeIcon=()=>{ const el=document.getElementById('theme-ico'); if(el) el.className=gt()==='dark'?'ph ph-moon':'ph ph-sun'; };
+updateThemeIcon();
+function toggleTheme(){ localStorage.setItem('quizTheme',gt()==='dark'?'light':'dark'); document.documentElement.setAttribute('data-theme',gt()); updateThemeIcon(); }
+
+function show(p,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); el.classList.add('active');
+  document.getElementById('login-panel').classList.toggle('hidden',p!=='login');
+  document.getElementById('signup-panel').classList.toggle('hidden',p!=='signup');
+  document.getElementById('alert').style.display='none';
+}
+function showAlert(msg,type){ const a=document.getElementById('alert'); a.className=`alert alert-${type} fade-in`; a.innerHTML=msg; a.style.display='block'; }
+
+async function doLogin(e){
+  e.preventDefault();
+  const btn=document.getElementById('l-btn'); btn.innerHTML='Signing in... <i class="ph ph-circle-notch ph-spin"></i>'; btn.disabled=true;
+  try{
+    const r=await fetch(`${API}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('l-email').value,password:document.getElementById('l-pass').value})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error);
+    localStorage.setItem('quizUser',JSON.stringify(d.user));
+    showAlert('<i class="ph ph-check-circle"></i> Authenticated! Redirecting...','ok');
+    setTimeout(()=>location.href=d.user.role==='admin'?'admin.html':'dashboard.html',700);
+  }catch(err){ showAlert('<i class="ph ph-warning-circle"></i> '+err.message,'err'); btn.innerHTML='Sign In <i class="ph ph-arrow-right"></i>'; btn.disabled=false; }
+}
+async function doSignup(e){
+  e.preventDefault();
+  const btn=document.getElementById('s-btn'); btn.innerHTML='Creating... <i class="ph ph-circle-notch ph-spin"></i>'; btn.disabled=true;
+  try{
+    const r=await fetch(`${API}/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:document.getElementById('s-name').value,email:document.getElementById('s-email').value,password:document.getElementById('s-pass').value})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error);
+    localStorage.setItem('quizUser',JSON.stringify(d.user));
+    showAlert('<i class="ph ph-check-circle"></i> Account created! Redirecting...','ok');
+    setTimeout(()=>location.href='dashboard.html',700);
+  }catch(err){ showAlert('<i class="ph ph-warning-circle"></i> '+err.message,'err'); btn.innerHTML='Create Account <i class="ph ph-arrow-right"></i>'; btn.disabled=false; }
+}
+</script>
+</body>
+</html>

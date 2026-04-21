@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz — CSE Quiz Engine</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
+.settings-wrap { width:100%; max-width:500px; }
+.cat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:24px; }
+.cat-btn {
+  padding:14px 10px; border:2px solid var(--border);
+  border-radius:var(--radius); background:var(--surface);
+  color:var(--text-2); font-size:0.875rem; font-weight:600;
+  cursor:pointer; text-align:center; font-family:'Inter',sans-serif;
+  transition:all 0.2s;
+}
+.cat-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+.cat-btn.selected { border-color:var(--accent); color:#fff; background:var(--accent); box-shadow:0 4px 14px rgba(124,77,255,0.35); }
+.selects-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:24px; }
+</style>
+</head>
+<body>
+
+<!-- Anti-cheat overlay -->
+<div id="cheat-overlay" class="hidden">
+  <div id="cheat-warning-box">
+    <i class="ph-fill ph-warning-octagon" style="font-size:4rem;color:var(--danger);margin-bottom:16px;"></i>
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.6rem;margin-bottom:10px;color:var(--text);">Proctoring Alert</h2>
+    <p style="color:var(--text-2);margin-bottom:20px;line-height:1.7;">You left the assessment window. Strict proctoring is enforced. Continued violations will disqualify your attempt.</p>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:700;margin-bottom:24px;color:var(--danger);" id="cheat-count">Strike 0 / 3</div>
+    <button class="btn btn-accent btn-block" onclick="resumeFromCheat()"><i class="ph ph-arrow-u-up-right"></i> Resume Session</button>
+  </div>
+</div>
+
+<nav class="navbar" id="quiz-nav">
+  <div class="brand"><i class="ph-fill ph-lightning"></i> CSE Quiz Engine</div>
+  <div class="nav-actions">
+    <button class="theme-btn" onclick="toggleTheme()"><i class="ph ph-moon" id="theme-ico"></i></button>
+    <button class="btn btn-outline btn-sm" onclick="location.href='dashboard.html'"><i class="ph ph-arrow-left"></i> Back</button>
+    <button class="btn btn-ghost btn-sm" onclick="localStorage.removeItem('quizUser');location.href='index.html'" style="color:var(--danger);border-color:var(--danger);"><i class="ph ph-sign-out"></i> Logout</button>
+    <div class="user-chip">
+      <div class="avatar" id="nav-avatar">U</div>
+      <span class="chip-name" id="nav-name">Student</span>
+    </div>
+  </div>
+</nav>
+
+<div class="quiz-container">
+
+  <!-- Settings -->
+  <div class="card settings-wrap fade-in" id="settings-card" style="padding:32px;">
+    <div style="margin-bottom:24px;">
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;margin-bottom:6px;">Configure Quiz</div>
+      <div style="color:var(--text-2);font-size:0.875rem;"><i class="ph ph-shield-check"></i> Proctored mode activates on start</div>
+    </div>
+
+    <div class="sec-head">Topic</div>
+    <div class="cat-grid">
+      <button class="cat-btn selected" data-cat="all">All Topics</button>
+      <button class="cat-btn" data-cat="DSA">DSA</button>
+      <button class="cat-btn" data-cat="Java">Java</button>
+      <button class="cat-btn" data-cat="Full Stack">Full Stack</button>
+      <button class="cat-btn" data-cat="DBMS">DBMS</button>
+      <button class="cat-btn" data-cat="OS">OS &amp; Net</button>
+    </div>
+
+    <div class="selects-row">
+      <div class="field"><label>Difficulty</label>
+        <select id="diff-sel">
+          <option value="all">All Levels</option>
+          <option value="Easy">Easy</option>
+          <option value="Medium">Medium</option>
+          <option value="Hard">Hard</option>
+        </select>
+      </div>
+      <div class="field"><label>Questions</label>
+        <select id="limit-sel">
+          <option value="5">5 Questions</option>
+          <option value="10" selected>10 Questions</option>
+          <option value="15">15 Questions</option>
+          <option value="30">Full Set</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="settings-err" class="alert alert-err"><i class="ph ph-x-circle"></i> Could not load questions. Ensure server is running.</div>
+    <button class="btn btn-accent btn-block" onclick="beginQuiz()" style="padding:12px;font-size:1rem;">
+      <i class="ph-fill ph-play"></i> Start Proctored Quiz
+    </button>
+  </div>
+
+  <!-- Quiz -->
+  <div class="quiz-wrap hidden fade-in" id="quiz-card">
+    <div class="quiz-meta">
+      <span class="chip chip-accent" id="q-cat"><i class="ph ph-folder-open"></i> Topic</span>
+      <span class="chip" id="q-diff">Medium</span>
+      <span style="margin-left:auto;" class="chip" style="border-color:var(--warn);color:var(--warn);">
+        <i class="ph-fill ph-fire" style="color:var(--warn);"></i> Streak: <span id="streak-num">0</span>
+      </span>
+    </div>
+    <div class="timer-row">
+      <div class="timer-track"><div id="timer-fill"></div></div>
+      <span id="timer-num">30s</span>
+    </div>
+    <div class="q-num">Q<span id="q-cur">1</span> <span>/ <span id="q-tot">10</span></span></div>
+    <div class="prog-track" style="margin-bottom:24px;"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div style="font-size:1.1rem;font-weight:600;margin-bottom:22px;line-height:1.65;color:var(--text);" id="q-text">Loading...</div>
+    <div id="opts-list"></div>
+    <button class="btn btn-accent btn-block hidden" id="next-btn" onclick="nextQuestion()" style="margin-top:20px;padding:13px;font-size:1rem;">Next <i class="ph ph-arrow-right"></i></button>
+  </div>
+
+  <!-- Result -->
+  <div class="card quiz-wrap hidden fade-in" id="result-card" style="padding:40px;">
+    <div class="result-icon" id="result-emoji"><i class="ph-fill ph-check-circle" style="color:var(--success);"></i></div>
+    <div class="result-title" id="result-title">Quiz Complete!</div>
+    <div class="result-sub" id="result-sub">Here's how you performed</div>
+    <div class="grid-4" style="margin-bottom:28px;">
+      <div class="stat-box"><div class="s-val" id="r-score">—</div><div class="s-label">Score</div></div>
+      <div class="stat-box"><div class="s-val" id="r-pct" style="color:var(--accent);">—</div><div class="s-label">Percent</div></div>
+      <div class="stat-box"><div class="s-val" id="r-grade">—</div><div class="s-label">Grade</div></div>
+      <div class="stat-box"><div class="s-val" style="gap:4px;"><i class="ph-fill ph-fire" style="color:var(--warn);font-size:1.4rem;"></i><span id="r-streak">—</span></div><div class="s-label">Streak</div></div>
+    </div>
+    <button class="btn btn-accent btn-block" id="cert-btn" onclick="downloadCert()" style="margin-bottom:12px;padding:12px;">
+      <i class="ph-fill ph-certificate"></i> Download Certificate
+    </button>
+    <div class="grid-2">
+      <button class="btn btn-outline btn-block" onclick="location.href='dashboard.html'"><i class="ph ph-squares-four"></i> Dashboard</button>
+      <button class="btn btn-ghost btn-block" onclick="location.reload()"><i class="ph ph-arrow-clockwise"></i> Try Again</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API='http://localhost:3000/api';
+const user=JSON.parse(localStorage.getItem('quizUser')||'null');
+if(!user) location.href='index.html';
+document.getElementById('nav-avatar').textContent=user.name[0].toUpperCase();
+document.getElementById('nav-name').textContent=user.name;
+
+const gt=()=>localStorage.getItem('quizTheme')||'dark';
+const applyTheme=()=>{ document.documentElement.setAttribute('data-theme',gt()); document.getElementById('theme-ico').className=gt()==='dark'?'ph ph-moon':'ph ph-sun'; };
+applyTheme();
+function toggleTheme(){ localStorage.setItem('quizTheme',gt()==='dark'?'light':'dark'); location.reload(); }
+
+// Category selector
+let selectedCat='all';
+document.querySelectorAll('.cat-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedCat=btn.dataset.cat==='OS'?'os_net':btn.dataset.cat;
+  });
+});
+
+let questions=[],currentIndex=0,answers={},streak=0,maxStreak=0,timer=null,timeLeft=30,quizStart=0,lastResult=null,lastAttemptId=null;
+
+// HARDENED ANTI-CHEAT ENGINE
+let cheatWarnings=0,inQuiz=false,blurHandled=false;
+
+document.addEventListener('contextmenu',e=>{ if(inQuiz) e.preventDefault(); });
+document.addEventListener('keydown',e=>{
+  if(!inQuiz) return;
+  const blocked=e.key==='Escape'||e.key==='F11'||e.key==='F12'||(e.key==='Tab'&&(e.altKey||e.ctrlKey))||(e.ctrlKey&&['w','W','r','R','n','N','p','P','t','T'].includes(e.key))||e.key==='Meta'||e.key==='OS';
+  if(blocked){e.preventDefault();e.stopPropagation();}
+},true);
+
+window.addEventListener('blur',()=>{
+  if(!inQuiz) return;
+  blurHandled=true; cheatWarnings++;
+  clearInterval(timer);
+  document.getElementById('cheat-count').textContent=`Strike ${cheatWarnings} / 3`;
+  document.getElementById('cheat-overlay').classList.remove('hidden');
+  if(cheatWarnings>=3) submitQuiz(true);
+});
+
+document.addEventListener('visibilitychange',()=>{
+  if(inQuiz&&document.hidden&&!blurHandled){ cheatWarnings++; clearInterval(timer); document.getElementById('cheat-count').textContent=`Strike ${cheatWarnings} / 3`; document.getElementById('cheat-overlay').classList.remove('hidden'); if(cheatWarnings>=3) submitQuiz(true); }
+  if(!document.hidden) blurHandled=false;
+});
+
+document.addEventListener('fullscreenchange',()=>{
+  if(inQuiz&&!document.fullscreenElement){ cheatWarnings++; document.getElementById('cheat-count').textContent=`Strike ${cheatWarnings} / 3`; document.getElementById('cheat-overlay').classList.remove('hidden'); if(cheatWarnings>=3){submitQuiz(true);return;} setTimeout(()=>forceFullscreen(),600); }
+});
+
+function forceFullscreen(){ if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); }
+function resumeFromCheat(){ document.getElementById('cheat-overlay').classList.add('hidden'); forceFullscreen(); }
+
+async function beginQuiz(){
+  const diff=document.getElementById('diff-sel').value, limit=document.getElementById('limit-sel').value;
+  document.getElementById('settings-err').style.display='none';
+  try{
+    // Build category param for server-side filtering
+    let catParam='all';
+    if(selectedCat!=='all'){
+      if(selectedCat==='os_net') catParam='OS,Networking,Security';
+      else catParam=selectedCat;
+    }
+    const qs=await(await fetch(`${API}/questions?difficulty=${diff}&limit=${limit}&category=${encodeURIComponent(catParam)}`)).json();
+    if(!Array.isArray(qs)||!qs.length){document.getElementById('settings-err').style.display='block';return;}
+    inQuiz=true; document.body.classList.add('in-quiz');
+    document.getElementById('quiz-nav').classList.add('hidden');
+    document.documentElement.requestFullscreen().catch(()=>{});
+    questions=qs; currentIndex=0; answers={}; streak=0; maxStreak=0;
+    document.getElementById('settings-card').classList.add('hidden');
+    document.getElementById('quiz-card').classList.remove('hidden');
+    document.getElementById('q-tot').textContent=questions.length;
+    quizStart=Date.now(); loadQuestion();
+  }catch(e){document.getElementById('settings-err').style.display='block';}
+}
+
+function loadQuestion(){
+  clearInterval(timer); document.getElementById('next-btn').classList.add('hidden');
+  const q=questions[currentIndex];
+  document.getElementById('q-cur').textContent=currentIndex+1;
+  document.getElementById('prog-fill').style.width=`${(currentIndex/questions.length)*100}%`;
+  document.getElementById('q-cat').innerHTML=`<i class="ph ph-folder-open"></i> ${q.category}`;
+  const diffMap={Easy:'chip-success',Medium:'chip-warn',Hard:'chip-danger'};
+  document.getElementById('q-diff').className='chip '+(diffMap[q.difficulty]||'chip-info');
+  document.getElementById('q-diff').textContent=q.difficulty;
+  document.getElementById('streak-num').textContent=streak;
+  document.getElementById('q-text').textContent=q.question_text;
+  const opts=q.question_type==='truefalse'?[{k:'A',v:q.option_a},{k:'B',v:q.option_b}]:[{k:'A',v:q.option_a},{k:'B',v:q.option_b},{k:'C',v:q.option_c},{k:'D',v:q.option_d}];
+  document.getElementById('opts-list').innerHTML=opts.map(o=>`<div class="opt fade-in" id="opt-${o.k}" onclick="pick(this,'${o.k}',${q.id})"><div class="opt-key">${o.k}</div><span>${o.v}</span></div>`).join('');
+  startTimer(q.id);
+}
+
+function startTimer(qId){
+  timeLeft=30; document.getElementById('timer-num').textContent='30s';
+  const fill=document.getElementById('timer-fill'); fill.style.width='100%'; fill.className='';
+  timer=setInterval(()=>{
+    timeLeft--; document.getElementById('timer-num').textContent=`${timeLeft}s`;
+    fill.style.width=`${(timeLeft/30)*100}%`;
+    if(timeLeft<=10) fill.className=timeLeft<=5?'crit':'warn';
+    if(timeLeft<=0){clearInterval(timer);answers[qId]=null;streak=0;document.getElementById('streak-num').textContent=0;lockOpts();showNext();}
+  },1000);
+}
+
+function pick(el,key,qId){
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected'); answers[qId]=key; showNext();
+}
+function lockOpts(){document.querySelectorAll('.opt').forEach(o=>o.style.pointerEvents='none');}
+function showNext(){
+  const btn=document.getElementById('next-btn'); btn.classList.remove('hidden');
+  btn.innerHTML=currentIndex===questions.length-1?'Submit Quiz <i class="ph-fill ph-check-circle"></i>':'Next <i class="ph ph-arrow-right"></i>';
+}
+async function nextQuestion(){ clearInterval(timer); if(currentIndex<questions.length-1){currentIndex++;loadQuestion();}else{await submitQuiz();} }
+
+async function submitQuiz(autoFail=false){
+  inQuiz=false; document.body.classList.remove('in-quiz');
+  document.getElementById('cheat-overlay').classList.add('hidden');
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  document.getElementById('quiz-card').classList.add('hidden');
+  document.getElementById('quiz-nav').classList.remove('hidden');
+  const timeTaken=Math.round((Date.now()-quizStart)/1000);
+  try{
+    const resp=await fetch(`${API}/submit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:user.id,answers:autoFail?{}:answers,timeTaken})});
+    const data=await resp.json();
+    if(data.error){
+      if(data.error.includes('foreign key')||data.error.includes('user_id')){
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('quizUser'); location.href='index.html'; return;
+      }
+      throw new Error(data.error);
+    }
+    lastResult=data; lastAttemptId=data.attemptId;
+    const {score,total,streak:s,percentage}=data;
+    const grade=percentage>=80?'S':percentage>=65?'A':percentage>=50?'B':percentage>=35?'C':'F';
+    if(autoFail){
+      document.getElementById('result-emoji').innerHTML='<i class="ph-fill ph-x-circle" style="color:var(--danger);"></i>';
+      document.getElementById('result-title').textContent='Quiz Disqualified';
+      document.getElementById('result-sub').textContent='3 proctoring violations detected. Attempt recorded as 0.';
+    }else{
+      document.getElementById('result-emoji').innerHTML=percentage>=75?'<i class="ph-fill ph-trophy" style="color:var(--accent-2);"></i>':'<i class="ph-fill ph-warning" style="color:var(--warn);"></i>';
+      document.getElementById('result-title').textContent=percentage>=50?'Great effort, '+user.name+'!':'Keep Practicing!';
+      document.getElementById('result-sub').textContent=`You scored ${score}/${total} with a streak of ${s}`;
+    }
+    document.getElementById('r-score').textContent=`${score}/${total}`;
+    document.getElementById('r-pct').textContent=`${percentage}%`;
+    const gradeEl = document.getElementById('r-grade');
+    gradeEl.textContent=grade;
+    gradeEl.style.color = grade==='S'?'var(--accent-2)':grade==='A'?'var(--success)':grade==='B'?'var(--accent)':grade==='C'?'var(--info)':'var(--danger)';
+    document.getElementById('r-streak').textContent=s;
+    document.getElementById('result-card').classList.remove('hidden');
+  }catch(e){
+    alert('Error submitting quiz: '+e.message+'. Please try again.');
+    document.getElementById('settings-card').classList.remove('hidden');
+  }
+}
+
+async function downloadCert(){
+  const btn=document.getElementById('cert-btn'); btn.innerHTML='<i class="ph ph-circle-notch ph-spin"></i> Generating...'; btn.disabled=true;
+  try{
+    const {score,total,streak:s,percentage}=lastResult;
+    const blob=await(await fetch(`${API}/certificate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName:user.name,score,total,streak:s,percentage,attemptId:lastAttemptId,userId:user.id})})).blob();
+    const url=URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'),{href:url,download:`Certificate_${user.name}.pdf`}).click();
+    URL.revokeObjectURL(url);
+  }finally{btn.innerHTML='<i class="ph-fill ph-certificate"></i> Download Certificate';btn.disabled=false;}
+}
+</script>
+</body>
+</html>

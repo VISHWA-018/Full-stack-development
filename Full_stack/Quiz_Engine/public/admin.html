@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — CSE Quiz Engine</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
+.dash-layout { display:grid; grid-template-columns:240px 1fr; min-height:calc(100vh - 60px); }
+.sidebar {
+  background:var(--surface); border-right:1px solid var(--border);
+  padding:24px 12px; display:flex; flex-direction:column; gap:4px;
+}
+.sidebar-item {
+  display:flex; align-items:center; gap:12px; padding:11px 16px;
+  font-size:0.875rem; font-weight:600; color:var(--text-2);
+  cursor:pointer; border:none; background:none;
+  font-family:'Inter',sans-serif; border-radius:var(--radius-sm); transition:0.15s;
+  text-align:left; width:100%;
+}
+.sidebar-item:hover { background:var(--surface-2); color:var(--text); }
+.sidebar-item.active { background:rgba(255,221,51,0.1); color:var(--accent-2); }
+.content { padding:28px 32px; background:var(--bg); }
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="brand" style="color:var(--accent-2);"><i class="ph-fill ph-shield-check"></i> Admin Console</div>
+  <div class="nav-actions">
+    <button class="theme-btn" onclick="toggleTheme()"><i class="ph ph-moon" id="theme-ico"></i></button>
+    <div class="user-chip" style="border-color:rgba(255,221,51,0.3)">
+      <div class="avatar" style="background:var(--accent-2);color:#1a1a2e;">A</div>
+      <span class="chip-name" style="color:var(--accent-2);">Superuser</span>
+      <button class="logout-link" onclick="logout()"><i class="ph ph-sign-out"></i></button>
+    </div>
+  </div>
+</nav>
+<div class="dash-layout">
+  <div class="sidebar">
+    <button class="sidebar-item active"><i class="ph-fill ph-squares-four" style="font-size:1.2rem;"></i> Platform Stats</button>
+  </div>
+  <div class="content">
+    <div class="banner fade-in" style="border-left:4px solid var(--accent-2);">
+      <div><h2>Platform Telemetry</h2><p>Live metrics from the quiz engine database.</p></div>
+    </div>
+    <div class="stats-row fade-in">
+      <div class="stat-box" style="--before-color:var(--accent)"><div class="s-val" id="s-users">—</div><div class="s-label">Registered Users</div></div>
+      <div class="stat-box"><div class="s-val" id="s-attempts">—</div><div class="s-label">Total Attempts</div></div>
+      <div class="stat-box"><div class="s-val" id="s-avg" style="color:var(--accent);">—</div><div class="s-label">Avg Score</div></div>
+    </div>
+    <div class="section-box fade-in" style="margin-top:24px;padding:0;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:0.875rem;">Recent Attempts</div>
+      <table class="table">
+        <thead><tr><th>Candidate</th><th>Score</th><th>Yield</th><th>When</th></tr></thead>
+        <tbody id="act-body"><tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text-3);">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+const API='http://localhost:3000/api';
+const user=JSON.parse(localStorage.getItem('quizUser')||'null');
+if(!user||user.role!=='admin') location.href='index.html';
+const gt=()=>localStorage.getItem('quizTheme')||'dark';
+const applyTheme=()=>{ document.documentElement.setAttribute('data-theme',gt()); document.getElementById('theme-ico').className=gt()==='dark'?'ph ph-moon':'ph ph-sun'; };
+applyTheme();
+function toggleTheme(){ localStorage.setItem('quizTheme',gt()==='dark'?'light':'dark'); location.reload(); }
+function logout(){ localStorage.removeItem('quizUser'); location.href='index.html'; }
+
+async function load(){
+  const d=await(await fetch(`${API}/admin/stats`)).json();
+  document.getElementById('s-users').textContent=d.totalUsers;
+  document.getElementById('s-attempts').textContent=d.totalAttempts;
+  document.getElementById('s-avg').textContent=d.avgScore+'%';
+  document.getElementById('act-body').innerHTML=d.recentAttempts.map(a=>
+    `<tr><td style="font-weight:600;">${a.name}</td>
+     <td style="font-family:var(--font-mono);">${a.score}/${a.total}</td>
+     <td><span class="chip ${parseFloat(a.percentage)>=75?'chip-success':parseFloat(a.percentage)>=50?'chip-warn':'chip-danger'}">${a.percentage}%</span></td>
+     <td style="color:var(--text-2);font-size:0.8125rem;">${new Date(a.date_taken).toLocaleString()}</td></tr>`).join('');
+}
+load();
+</script>
+</body>
+</html>

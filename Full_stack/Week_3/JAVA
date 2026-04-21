@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Applyfolio – Internship Application & Portfolio Management</title>
+
+<!-- FONTS -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+/* -----------------------------------------------------------
+   APPLYFOLIO — GLOBAL DESIGN SYSTEM
+----------------------------------------------------------- */
+:root {
+    --primary: #4A7CFF;
+    --primary-dark: #2C5DFF;
+    --secondary: #111827;
+
+    --accent-green: #22C55E;
+    --accent-yellow: #FACC15;
+    --danger: #EF4444;
+
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --glass-white: rgba(255,255,255,0.55);
+    --glass-border: rgba(255,255,255,0.25);
+
+    --heading: #0F172A;
+    --body: #334155;
+    --muted: #64748B;
+
+    --radius: 14px;
+    --shadow-sm: 0px 2px 6px rgba(0,0,0,0.04);
+    --shadow-md: 0px 4px 20px rgba(0,0,0,0.12);
+    --shadow-lg: 0px 10px 40px rgba(0,0,0,0.18);
+
+    font-family: 'Inter', sans-serif;
+}
+
+/* RESET */
+* {
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body {
+    background: var(--bg);
+    color: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+    scroll-behavior: smooth;
+}
+
+h1,h2,h3,h4 {
+    color: var(--heading);
+    font-weight: 600;
+}
+
+a { text-decoration:none; color:inherit; }
+
+/* -----------------------------------------------------------
+   NAVBAR
+----------------------------------------------------------- */
+.navbar {
+    width:100%;
+    background: var(--surface);
+    padding: 18px 40px;
+    box-shadow: var(--shadow-sm);
+    position: fixed;
+    top:0; left:0;
+    z-index:100;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.nav-logo {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.nav-links a {
+    margin-left: 22px;
+    font-weight: 500;
+    color: var(--body);
+}
+.nav-links a:hover {
+    color: var(--primary);
+}
+
+/* -----------------------------------------------------------
+   BUTTONS
+----------------------------------------------------------- */
+.btn {
+    display:inline-block;
+    padding:12px 22px;
+    border-radius: var(--radius);
+    font-weight:500;
+    transition:0.25s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color:white;
+}
+.btn-primary:hover { background: var(--primary-dark); }
+
+.btn-outline {
+    border:2px solid var(--primary);
+    color: var(--primary);
+}
+.btn-outline:hover {
+    background: var(--primary);
+    color:white;
+}
+
+/* -----------------------------------------------------------
+   GLASS CARD
+----------------------------------------------------------- */
+.glass-card {
+    background: var(--glass-white);
+    border:1px solid var(--glass-border);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 30px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+}
+
+/* -----------------------------------------------------------
+   FORMS
+----------------------------------------------------------- */
+.input-group { margin-bottom: 20px; }
+
+.input-group label {
+    display:block;
+    margin-bottom:6px;
+    font-size:14px;
+    color: var(--muted);
+}
+
+.input-group input,
+.input-group select,
+.input-group textarea {
+    width:100%;
+    padding:12px;
+    border-radius: var(--radius);
+    border:1px solid #CBD5E1;
+    font-size:15px;
+}
+
+/* -----------------------------------------------------------
+   TABLES
+----------------------------------------------------------- */
+.table {
+    width:100%;
+    border-collapse: collapse;
+    background:white;
+    border-radius: var(--radius);
+    overflow:hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.table th {
+    background:#EBF1FF;
+    padding:14px;
+    text-align:left;
+    font-weight:600;
+}
+
+.table td {
+    padding:14px;
+    border-bottom:1px solid #E2E8F0;
+}
+
+/* -----------------------------------------------------------
+   GRID + LAYOUTS
+----------------------------------------------------------- */
+.grid {
+    display:grid;
+    gap:20px;
+    grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+}
+
+section {
+    padding:100px 40px;
+}
+
+/* -----------------------------------------------------------
+   SIDEBAR (DASHBOARDS)
+----------------------------------------------------------- */
+.sidebar {
+    background: var(--secondary);
+    color:white;
+    padding:30px 20px;
+    height:100%;
+    position:sticky;
+    top:0;
+}
+
+.sidebar h3 { margin-bottom:30px; font-size:20px; }
+
+.sidebar a {
+    display:block;
+    padding:12px;
+    border-radius: var(--radius);
+    margin-bottom:10px;
+    transition:0.2s;
+}
+.sidebar a:hover { background: rgba(255,255,255,0.1); }
+
+/* -----------------------------------------------------------
+   DASHBOARD CONTENT
+----------------------------------------------------------- */
+.dashboard {
+    display:grid;
+    grid-template-columns:250px 1fr;
+    min-height:100vh;
+}
+
+.dashboard-content {
+    padding:40px;
+}
+
+.card {
+    background:white;
+    padding:22px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+}
+
+/* -----------------------------------------------------------
+   TIMELINE (APPLICATION STATUS)
+----------------------------------------------------------- */
+.timeline {
+    position:relative;
+    padding-left:40px;
+}
+.timeline::before {
+    content:"";
+    position:absolute;
+    left:15px;
+    top:0;
+    width:4px;
+    height:100%;
+    background: var(--primary);
+    border-radius:10px;
+}
+.timeline-step {
+    margin-bottom:30px;
+    position:relative;
+}
+.timeline-step::before {
+    content:"";
+    position:absolute;
+    left:-27px;
+    top:5px;
+    width:14px;
+    height:14px;
+    background:white;
+    border:3px solid var(--primary);
+    border-radius:50%;
+}
+
+/* RESPONSIVE */
+@media(max-width:850px){
+    .dashboard { grid-template-columns:1fr; }
+    .sidebar { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="nav-logo">Applyfolio</div>
+    <div class="nav-links">
+        <a href="#landing">Home</a>
+        <a href="#login">Login</a>
+        <a href="#signup">Signup</a>
+        <a href="#student-dashboard" class="btn-primary" style="padding:8px 18px;border-radius:10px;color:white;">Dashboard</a>
+    </div>
+</nav>
+
+<!-- LANDING -->
+<section id="landing" style="padding-top:140px; text-align:center;">
+    <h1 style="font-size:48px;">Your Internship Journey Starts Here 🚀</h1>
+    <p style="margin-top:10px; color:var(--muted);">Track applications, build portfolios, and connect with recruiters.</p>
+
+    <div style="margin-top:30px;">
+        <a class="btn btn-primary" href="#signup">Get Started</a>
+        <a class="btn btn-outline" href="#login">Login</a>
+    </div>
+
+    <!-- Three feature cards -->
+    <div class="grid" style="margin-top:60px;">
+        <div class="glass-card">
+            <h3>📁 Smart Applications</h3>
+            <p>Manage all your internship applications in one place.</p>
+        </div>
+
+        <div class="glass-card">
+            <h3>⭐ Portfolio Builder</h3>
+            <p>Upload projects, resumes, achievements and more.</p>
+        </div>
+
+        <div class="glass-card">
+            <h3>🏢 Recruiter Tools</h3>
+            <p>Shortlist, schedule interviews and manage applicants.</p>
+        </div>
+    </div>
+</section>
+
+<!-- LOGIN -->
+<section id="login" style="background:white;">
+    <div class="glass-card" style="max-width:450px;margin:auto;">
+        <h2 style="text-align:center;">Login</h2>
+
+        <div class="input-group">
+            <label>Email</label>
+            <input type="email" placeholder="you@example.com">
+        </div>
+
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" placeholder="••••••••">
+        </div>
+
+        <a href="#student-dashboard" class="btn btn-primary" style="width:100%; text-align:center;">Login</a>
+    </div>
+</section>
+
+<!-- SIGNUP -->
+<section id="signup">
+    <div class="glass-card" style="max-width:480px;margin:auto;">
+        <h2 style="text-align:center;">Create Account</h2>
+
+        <div class="input-group">
+            <label>Full Name</label>
+            <input type="text">
+        </div>
+
+        <div class="input-group">
+            <label>Email</label>
+            <input type="email">
+        </div>
+
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password">
+        </div>
+
+        <a href="#student-dashboard" class="btn btn-primary" style="width:100%; text-align:center;">Sign Up</a>
+    </div>
+</section>
+<!-- STUDENT DASHBOARD -->
+<section id="student-dashboard" class="dashboard">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h3>Student</h3>
+        <a href="#student-dashboard">Overview</a>
+        <a href="#">Applications</a>
+        <a href="#">Portfolio</a>
+        <a href="#">Achievements</a>
+        <a href="#">Settings</a>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="dashboard-content">
+
+        <h2>Welcome Back 👋</h2>
+
+        <div class="grid" style="margin-top:20px;">
+            <div class="card"><h3>Applications</h3><p>6 Active</p></div>
+            <div class="card"><h3>Portfolio Items</h3><p>4 Projects</p></div>
+            <div class="card"><h3>Messages</h3><p>2 New</p></div>
+        </div>
+
+        <h3 style="margin-top:40px;">Application Progress</h3>
+
+        <div class="timeline" style="margin-top:20px;">
+            <div class="timeline-step"><strong>Applied</strong> – Application Submitted</div>
+            <div class="timeline-step"><strong>Screening</strong> – Recruiter reviewing</div>
+            <div class="timeline-step"><strong>Interview</strong> – Pending scheduling</div>
+            <div class="timeline-step"><strong>Final Decision</strong></div>
+        </div>
+
+    </div>
+</section>
+
+<!-- RECRUITER DASHBOARD -->
+<section id="recruiter-dashboard" class="dashboard" style="background:#F1F5FF;">
+
+    <div class="sidebar">
+        <h3>Recruiter</h3>
+        <a href="#recruiter-dashboard">Overview</a>
+        <a href="#">Applicants</a>
+        <a href="#">Job Posts</a>
+        <a href="#">Schedule</a>
+        <a href="#">Settings</a>
+    </div>
+
+    <div class="dashboard-content">
+        <h2>Applicants</h2>
+
+        <table class="table" style="margin-top:20px;">
+            <tr>
+                <th>Name</th><th>Role</th><th>Status</th>
+            </tr>
+            <tr>
+                <td>Ramakrishnan S</td><td>Frontend Intern</td><td>Under Review</td>
+            </tr>
+            <tr>
+                <td>John Doe</td><td>ML Intern</td><td>Interview Pending</td>
+            </tr>
+        </table>
+
+        <h2 style="margin-top:40px;">Job Postings</h2>
+
+        <div class="grid" style="margin-top:20px;">
+            <div class="card"><h3>AI Intern</h3><p>12 Applicants</p></div>
+            <div class="card"><h3>Web Dev Intern</h3><p>8 Applicants</p></div>
+        </div>
+
+    </div>
+</section>
+
+<!-- ADMIN DASHBOARD -->
+<section id="admin-dashboard" class="dashboard" style="background:#FFF7E6;">
+
+    <div class="sidebar">
+        <h3>Admin</h3>
+        <a href="#admin-dashboard">Overview</a>
+        <a href="#">Users</a>
+        <a href="#">Roles</a>
+        <a href="#">System</a>
+        <a href="#">Settings</a>
+    </div>
+
+    <div class="dashboard-content">
+
+        <h2>User Management</h2>
+
+        <table class="table" style="margin-top:20px;">
+            <tr>
+                <th>User</th><th>Email</th><th>Role</th>
+            </tr>
+            <tr>
+                <td>Ramakrishnan</td><td>ramakrishnan@example.com</td><td>Student</td>
+            </tr>
+            <tr>
+                <td>Recruiter One</td><td>recruiter@example.com</td><td>Recruiter</td>
+            </tr>
+            <tr>
+                <td>Admin One</td><td>admin@example.com</td><td>Admin</td>
+            </tr>
+        </table>
+
+    </div>
+</section>
+
+</body>
+</html>
